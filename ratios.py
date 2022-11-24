@@ -14,6 +14,8 @@ import json
 import os
 from matplotlib import pyplot as plt
 import numpy as np
+from sklearn.preprocessing import normalize
+import statistics
 path = "PROSIM/"
 ext = '.json'
 
@@ -39,6 +41,15 @@ def linearization(array_x, array_y):
     b = (sumy * sumxsq - sumx * sumxy) / d
 
     return m, b
+
+# def normalize(arr, t_min, t_max):
+#     norm_arr = []
+#     diff = t_max - t_min
+#     diff_arr = max(arr) - min(arr)
+#     for i in arr:
+#         temp = (((i - min(arr))*diff)/diff_arr) + t_min
+#         norm_arr.append(temp)
+#     return norm_arr
 
 if __name__ == '__main__' :
 
@@ -88,29 +99,41 @@ if __name__ == '__main__' :
                                     "ratio-diastolic":diastolic_ratio,
                                     "ratio-systolic":systolic_ratio})
 
-                # for i, presion_actual in enumerate(data):
-                #     error = 0
+                print(data['TheoricalDiastolic'],data['TheoricalSistolic'])
+                print(differential_pulse,diastolic_ratio,systolic_ratio)
 
-                #     if i >= data.shape[0]:
-                #         break
-                    
-                #     if (presion_iter >= presion_actual[0]) and (presion_iter < data[i+1][0]):
-                #         m,b = linearization(data[:][0],data[:][1])
-                #     else:
-                #         continue
+    variance = []
+    dic_pressure_pulse = {}
+    normalize_pressure_pulse = {}
 
-                #     temp = b + m*presion_iter
+    for i in range(16):
+        dic_pressure_pulse[str((i+1)*10)] = []
+        # normalize_pressure_pulse[str((i+1)*10)] = []
 
-                #     if presion_iter <= map:
-                #         error = abs(temp - data['TheoricalDiastolic'])
-                #         if gerror_dia > error:
-                #             gerror_dia = error
+    salto = 10
+    offset = 15
+    for iter in results_list:
+        pressure_pulse = iter['pressure-pulse']
 
-                #     else:
-                #         error = abs(temp - data['TheoricalSistolic'])
-                #         if gerror_sys > error:
-                #             gerror_sys = error
+        for i in range(16):
+            tag = str((i+1)*10)
+            if pressure_pulse > (offset + salto*i) and pressure_pulse <= (offset + salto*(i+1)):
+                dic_pressure_pulse[tag].append([iter['ratio-diastolic'],iter['ratio-systolic']])
+                
+    for i in range(16):
+        tag = str((i+1)*10)
+        if len(dic_pressure_pulse[tag]) >= 2:
+            diastolic_temp = []
+            systolic_temp = []
 
+            for j in range(len(dic_pressure_pulse[tag])):
+                diastolic_temp.append(dic_pressure_pulse[tag][j][0])
+                systolic_temp.append(dic_pressure_pulse[tag][j][1])
+            diastolic_norm = normalize([diastolic_temp])
+            systolic_norm = normalize([systolic_temp])
+            variance.append([statistics.stdev(diastolic_temp),statistics.stdev(systolic_temp)])
+            print(tag)
+            print(diastolic_temp, systolic_temp, variance[-1])
     
     results_json = json.dumps(results_list)
     
@@ -118,7 +141,6 @@ if __name__ == '__main__' :
     jsonFile.write(results_json)
     jsonFile.close()
 
-    print(diastolic_limits,systolic_limits, diastolic_pulses, systolic_pulses, diastolic_pulse, systolic_pulse, data['pressure'], data['pulse'])       
-    #print(data.shape[0])       
+    #print(data['TheoricalDiastolic'], data['TheoricalSistolic'], diastolic_pulse, systolic_pulse, pulso_map, data['pressure'], data['pulse'])              
     #plt.plot(data['pressure'],data['pulse'])
     #plt.show()
